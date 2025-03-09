@@ -5,24 +5,25 @@
 #include <chrono>
 #include <thread>
 #include <sstream>
-
 // #include <regex> // https://en.cppreference.com/w/cpp/regex
 #include "utilities.h"
 using namespace std;
 
 /* CONSTANTS */
-#define NUM_ROWS 8
-#define NUM_COLS 10
-#define NUM_BOMBS (NUM_ROWS*NUM_COLS*0.2)
+#define NUM_ROWS 4
+#define NUM_COLS 4
+#define NUM_BOMBS (NUM_ROWS*NUM_COLS/5)
 
 /* GLOBALS */
-std::string gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
+char gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
 bool realBoard[NUM_ROWS][NUM_COLS]; // 2D bool array showing where the flags are
 bool bombWentOff = false;
 int numFlagsLeft = NUM_BOMBS;
 int numBombsFound = 0;
 
 /* HELPER FUNCTIONS */
+
+/** @brief get number of bombs in 3x3 around (r,c) **/
 int getNumBombs(int r, int c) {
     int count = 0;
     for (int i = -1; i <= 1; i++) {
@@ -37,7 +38,7 @@ int getNumBombs(int r, int c) {
     return count;
 }
 
-// see if (r_test, c_test) is in 3x3 vicinity of (r,c)
+/** @brief see if (r_test, c_test) is in 3x3 vicinity of (r,c) **/
 bool inLocalThreeByThree(int r, int c, int r_test, int c_test) {
     for (int i = -1; i <=1; i++) {
         for (int j = -1; j <=1; j++) {
@@ -49,18 +50,24 @@ bool inLocalThreeByThree(int r, int c, int r_test, int c_test) {
     return false;
 }
 
-void revealAllBombs() { // called by gameOver
+/** @brief reveal all the bombs, called by gameOver**/
+void revealAllBombs() {
     for (int r = 0; r < NUM_ROWS; r++) {
         for (int c = 0; c < NUM_COLS; c++) {
             if (realBoard[r][c]) {
-                gameBoard[r][c] = "\033[1;35m*\033[0m";
+                gameBoard[r][c] = '*'; 
             }
         }
     }
 }
+
 /* CORE FUNCTIONS */
-void displayBoard() {
-    // print stats - number of flags, can be negative
+
+/** @brief displays board, number of flags used 
+* @note takes r,c which is coord of current move, highlighted blue
+**/
+void displayBoard(int current_r=-1, int current_c=-1) {
+    // number of flags can be negative
     std::stringstream oss;
     oss << numFlagsLeft;
     std::cout << "Flags: " << oss.str() << "\n\n  ";
@@ -71,26 +78,35 @@ void displayBoard() {
     for (int r = 0; r < NUM_ROWS; r++) {
         std::cout << std::to_string(r) << " ";
         for (int c = 0; c < NUM_COLS; c++) {
-            std::cout << gameBoard[r][c] << " ";
+            if (current_r == r && current_c == c) { // current square, color blue
+                std::cout << "\033[1;34m" << gameBoard[r][c] << "\033[0m ";
+            } else if (gameBoard[r][c] == 'F') { // flag, color red
+                std::cout << "\033[1;31mF\033[0m ";
+            } else if (gameBoard[r][c] == '*') { // bomb, color magenta
+                std::cout << "\033[1;35m*\033[0m "; 
+            } else if (std::isdigit(gameBoard[r][c])) { // numbers, color green
+                std::cout << "\033[1;32m" << gameBoard[r][c] << "\033[0m "; 
+            } else { // nothing, or normal #
+                std::cout << gameBoard[r][c] << " ";
+            }
         }
         std::cout << std::endl;
     }
 }
 
+/** @brief reveal recursively around square **/
 void reveal(int r, int c) {
-    // if (r < 0 || c < 0 || r >= NUM_ROWS || c >= NUM_COLS) return; // really only used for revealing full board
     if (realBoard[r][c]) {
-        gameBoard[r][c] = "\033[1;35m*\033[0m";
+        gameBoard[r][c] = '*';
         bombWentOff = true;
-        // TODO: should reveal all bombs
     } else {
         int numBombs = getNumBombs(r,c);
         if (numBombs==0) {
-            gameBoard[r][c] = " ";
+            gameBoard[r][c] = ' ';
             for (int i = -1; i <= 1; i++) {
                 if (r+i >= 0 && r+i < NUM_ROWS) {
                     for (int j = -1; j <=1; j++) {
-                        if (c+j >= 0 && c+j<NUM_COLS && gameBoard[r+i][c+j] == "#" && !(i==0 && j==0)) {
+                        if (c+j >= 0 && c+j<NUM_COLS && gameBoard[r+i][c+j] == '#' && !(i==0 && j==0)) {
                             reveal(r+i,c+j);
                         }
                     }
@@ -98,18 +114,18 @@ void reveal(int r, int c) {
             }
         } else {
             // https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
-            gameBoard[r][c] = "\033[1;32m" + std::to_string(numBombs) +"\033[0m"; 
+            gameBoard[r][c] = ('0' + numBombs); 
         }
     }
 }
 
-// plays 1st step of game, plus generates board
+/** @brief plays 1st step of game and generates board **/
 void setupBoard() {
     // set up realBoard and gameBoard
     for (int r = 0; r < NUM_ROWS; r++) {
         for (int c = 0; c < NUM_COLS; c++) {
-            gameBoard[r][c] = "#";
-            realBoard[r][c]=false;
+            gameBoard[r][c] = '#';
+            realBoard[r][c] = false;
         }
     }
     clearScreen();
@@ -133,7 +149,7 @@ void setupBoard() {
         realBoard[temp_r][temp_c] = true;
     }
     reveal(r,c);
-    // clearScreen();
+    clearScreen();
     displayBoard();
 }
 
@@ -156,35 +172,34 @@ void playOneIteration() {
     std::cin >> c; // take in x
     std::cout << "Input y: ";
     std::cin >> r; // take in y
-    // if (gameBoard[r][c] != "#" || gameBoard[r][c] != "F") return;
     
-    // highlight the square user wants to do smth to
-    gameBoard[r][c] = "\033[1;34m" + gameBoard[r][c] + "\033[0m"; 
+    // update screen board with blue highlight for selected coord
     clearScreen();
-    displayBoard();
-    // TODO: fix blue highlight being left behind even when quit current run
-
+    displayBoard(r,c);
+ 
     std::cout << "[F]lag, [R]eveal, or [U]nflag: ";
     string action;
     cin.ignore(10000, '\n');
     getline(cin, action);
-
+   
     // update boards
-    // TODO: make it case insensitive?
     if (action=="f" || action == "F") { // Flag
-        // TODO: can only flag on #
-        gameBoard[r][c] = "\033[1;31mF\033[0m";
-        numFlagsLeft--;
-        if (realBoard[r][c]) numBombsFound++; // if actually a bomb
+        if (gameBoard[r][c] == '#') {
+            gameBoard[r][c] = 'F';
+            numFlagsLeft--;
+            if (realBoard[r][c]) numBombsFound++; // if actually a bomb
+        }
     } else if (action == "r" || action == "R") { // Reveal
-        // TODO: can only reveal on #
-        reveal(r,c);
+        if (gameBoard[r][c] == '#') {
+            reveal(r,c);
+        } 
     } else if (action == "u" || action == "U") { // unflag
-        // TODO: can only flag on F
-        gameBoard[r][c] = "#";
-        numFlagsLeft++;
+        cout << gameBoard[r][c] << endl;
+        if (gameBoard[r][c] == 'F'){
+            gameBoard[r][c] = '#';
+            numFlagsLeft++;
+        }
     }
-    
     clearScreen();
     displayBoard();
 }
@@ -192,8 +207,7 @@ void playOneIteration() {
 void playGame() {
     std::cout << "Welcome to Minesweeper" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    setupBoard();
-    // board now displayed with first move having been played
+    setupBoard(); // board displayed with first move having been played
     while (!bombWentOff && numBombsFound!=NUM_BOMBS){
         playOneIteration();
     }

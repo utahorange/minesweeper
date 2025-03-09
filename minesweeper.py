@@ -77,7 +77,8 @@ def reveal(coords):
             for i in range(-1,2):
                 if(coords[0]+i>=0 and coords[0]+i<BOARD_SIZE):
                     for j in range(-1,2):
-                        if(coords[1]+j>=0 and coords[1]+j<BOARD_SIZE and game_board[coords[0]+i][coords[1]+j] == "#" and not(i==0 and j==0)):
+                        if(coords[1]+j>=0 and coords[1]+j<BOARD_SIZE 
+                        and game_board[coords[0]+i][coords[1]+j] == "#" and not(i==0 and j==0)):
                             reveal((coords[0]+i,coords[1]+j))
         else:
             game_board[coords[0]][coords[1]] = colored(t,'green')
@@ -91,6 +92,8 @@ def generate_board(): # the first move of the game
     start_coords = (int(start_coords.split(",")[0]),int(start_coords.split(",")[1]))
     
     bombs = set()
+
+    # don't add bombs in 3x3 grid around where player first selects
     temp_coords = []
     for i in range(-1,2):
         if(start_coords[0]+i>=0 and start_coords[0]+i<BOARD_SIZE):
@@ -98,6 +101,7 @@ def generate_board(): # the first move of the game
                 if(start_coords[1]+j>=0 and start_coords[1]+j<BOARD_SIZE and not(i==0 and j==0)):
                     temp_coords.append((start_coords[0]+i,start_coords[1]+j))
 
+    # actually add bombs
     while(len(bombs)<=FLAGS):
         temp = (random.randint(0,9),random.randint(0,9))
         while(temp==start_coords or temp in temp_coords): # make sure its not the starting coord or else it'd be annoying for user

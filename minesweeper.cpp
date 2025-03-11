@@ -23,7 +23,7 @@ int numBombsFound = 0;
 
 /* HELPER FUNCTIONS */
 
-/** @brief get number of bombs in 3x3 around (r,c) **/
+/** @brief get number of bombs in 3x3 around (r,c) */
 int getNumBombs(int r, int c) {
     int count = 0;
     for (int i = -1; i <= 1; i++) {
@@ -38,7 +38,7 @@ int getNumBombs(int r, int c) {
     return count;
 }
 
-/** @brief see if (r_test, c_test) is in 3x3 vicinity of (r,c) **/
+/** @brief see if (r_test, c_test) is in 3x3 vicinity of (r,c) */
 bool inLocalThreeByThree(int r, int c, int r_test, int c_test) {
     for (int i = -1; i <=1; i++) {
         for (int j = -1; j <=1; j++) {
@@ -50,7 +50,7 @@ bool inLocalThreeByThree(int r, int c, int r_test, int c_test) {
     return false;
 }
 
-/** @brief reveal all the bombs, called by gameOver**/
+/** @brief reveal all the bombs, called by gameOver */
 void revealAllBombs() {
     for (int r = 0; r < NUM_ROWS; r++) {
         for (int c = 0; c < NUM_COLS; c++) {
@@ -65,6 +65,7 @@ void revealAllBombs() {
 
 /** @brief displays board, number of flags used 
 * @note takes r,c which is coord of current move, highlighted blue
+* for colors, see https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
 **/
 void displayBoard(int current_r=-1, int current_c=-1) {
     // number of flags can be negative
@@ -94,7 +95,7 @@ void displayBoard(int current_r=-1, int current_c=-1) {
     }
 }
 
-/** @brief reveal recursively around square **/
+/** @brief reveal recursively around square */
 void reveal(int r, int c) {
     if (realBoard[r][c]) {
         gameBoard[r][c] = '*';
@@ -113,13 +114,12 @@ void reveal(int r, int c) {
                 }
             }
         } else {
-            // https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
             gameBoard[r][c] = ('0' + numBombs); 
         }
     }
 }
 
-/** @brief plays 1st step of game and generates board **/
+/** @brief plays 1st step of game and generates board */
 void setupBoard() {
     // set up realBoard and gameBoard
     for (int r = 0; r < NUM_ROWS; r++) {
@@ -132,6 +132,7 @@ void setupBoard() {
     displayBoard();
     int r = 0;
     int c = 0;
+    // TODO: do correct checks for x,y
     std::cout << "Input x: ";
     std::cin >> c; // take in x
     std::cout << "Input y: ";
@@ -153,6 +154,7 @@ void setupBoard() {
     displayBoard();
 }
 
+/** @brief game over */
 void gameOver() {
     clearScreen();
     revealAllBombs();
@@ -164,10 +166,13 @@ void gameOver() {
     }
 }
 
+/** @brief play one full iteration of the game */
 void playOneIteration() {
     // prompt for x, y and action
     int r = 0;
     int c = 0;
+
+    // TODO: do correct checks for x,y
     std::cout << "Input x: ";
     std::cin >> c; // take in x
     std::cout << "Input y: ";
@@ -204,6 +209,7 @@ void playOneIteration() {
     displayBoard();
 }
 
+/** @brief play game */
 void playGame() {
     std::cout << "Welcome to Minesweeper" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(1));

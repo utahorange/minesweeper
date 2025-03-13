@@ -85,22 +85,40 @@ int serializeGameState() {
 /** @brief loads json file into gameBoard, realBoard 
  * @return 0 for success, -1 if no gameState.json file to read
 */
-int unserializeGameState() { // TODO
+int unserializeGameState() {
     std::ifstream inFile("assets/gameState.json");
+    if (!inFile.good()) return -1;
     json loadedState = json::parse(inFile);
+    /*
+    Note / TODO: 
+    we kinda have a problem here
+    we'll load the row, col params from the json file, 
+    which could differ from our global contants
+    in fact, a client program shouldn't even define 
+    those params until it boots up and receives a game code
 
-
+    cooked? imma just ignore this for now
+    */
+    for (int r = 0; r < NUM_ROWS; r++) {
+        for (int c = 0; c < NUM_COLS; c++) {
+            gameBoard[r][c] = loadedState["gameBoard"][r][c].get<char>();
+            realBoard[r][c] = loadedState["realBoard"][r][c].get<bool>();
+        }
+    }
+    bombWentOff = (loadedState["bombWentOff"]==1) ? true : false;
+    numFlagsLeft = loadedState["numFlagsLeft"];
+    numBombsFound = loadedState["numBombsFound"];
+    return 0;
 }
-
 
 /* HELPER FUNCTIONS */
 
 /** @brief returns whether a string can be converted to int */
 bool isdigit(std::string s) {
-  for (char& c : s) {
-    if (!isdigit(c)) return false;
-  }
-  return true;
+    for (char& c : s) {
+        if (!isdigit(c)) return false;
+    }
+    return true;
 }
 
 /** @brief 
@@ -321,11 +339,17 @@ void playGame() {
     gameOver();
 }
 
-void testSerialize() {
-    setupBoard();
-    int i = serializeGameState();
-    std::cout << i << std::endl;
-}
+// void testSerialize() {
+//     setupBoard();
+//     int i = serializeGameState();
+//     std::cout << i << std::endl;
+// }
+// void testUnserialize() {
+//     std::cout << "trying" << std::endl;
+//     int i = unserializeGameState();
+//     std::cout << i << std::endl;
+//     displayBoard();
+// }
 
 int main() {
     /*
@@ -343,6 +367,7 @@ int main() {
         - if host disconnects, someone should connect back
     */
 
-   testSerialize();
-    // playGame();
+    // testSerialize();
+    // testUnserialize() ;
+    playGame();
 }

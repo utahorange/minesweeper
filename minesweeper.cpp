@@ -1,30 +1,102 @@
 /* INCLUDES */
 #include <iostream>
+#include <fstream> // for std::ofstream
 #include <string>
 #include <random>
 #include <chrono>
 #include <thread>
-#include <sstream>
-// #include <regex> // https://en.cppreference.com/w/cpp/regex
+#include <sstream> // for int to string safely
+
 #include "utilities.h"
-using namespace std;
+#include "json.hpp"
+using json = nlohmann::json;
+
+// using namespace std;
 
 /* CONSTANTS */
-#define NUM_ROWS 4
-#define NUM_COLS 4
+#define NUM_ROWS 20
+#define NUM_COLS 20
 #define NUM_BOMBS (NUM_ROWS*NUM_COLS/5)
 
 /* GLOBALS */
+
 char gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
 bool realBoard[NUM_ROWS][NUM_COLS]; // 2D bool array showing where the flags are
+// ^ these need to be dynamically allocated if 
+// i want session host to be able to change them
+// when making a session
+
 bool bombWentOff = false;
 int numFlagsLeft = NUM_BOMBS;
 int numBombsFound = 0;
 
+/* SERIALIZATION FUNCTIONS */
+
+/*
+{
+    "numRows": 10,
+    "numCols": 10,
+    "gameBoard": [
+        ["#", "#", "#", " ", "F"],
+        [" ", "#", "#", " ", " "],
+        ["F", " ", "#", "#", "#"],
+        [" ", " ", " ", " ", " "],
+        ["#", "#", "F", "#", "#"]
+    ],
+    "realBoard": [
+        [false, true, false, false, false],
+        [false, false, false, false, false],
+        [true, false, false, true, false],
+        [false, false, false, false, false],
+        [false, true, true, false, false]
+    ],
+    "bombWentOff": 0,
+    "numFlagsLeft": ???,
+    "numBombsFound": 0
+}
+*/
+
+/** @brief converts current gameBoard, realBoard to json file */
+int serializeGameState() {
+    json gameState;
+    gameState["numRows"] = NUM_ROWS;
+    gameState["numCols"] = NUM_COLS;
+
+    gameState["gameBoard"] = json::array();
+    for (int i = 0; i < NUM_ROWS; ++i) {
+        json row = json::array();
+        for (int j = 0; j < NUM_COLS; ++j) {
+            row.push_back(gameBoard[i][j]);
+        }
+        gameState["gameBoard"].push_back(row);
+    }
+
+    gameState["realBoard"] = realBoard;
+    gameState["bombWentOff"] = bombWentOff ? 1 : 0;
+    gameState["numFlagsLeft"] = numFlagsLeft;
+    gameState["numBombsFound"] = numBombsFound;
+
+    std::ofstream outFile("assets/gameState.json");
+    outFile << gameState.dump(4);
+    
+    return 0;
+}
+
+/** @brief loads json file into gameBoard, realBoard 
+ * @return 0 for success, -1 if no gameState.json file to read
+*/
+int unserializeGameState() { // TODO
+    std::ifstream inFile("assets/gameState.json");
+    json loadedState = json::parse(inFile);
+
+
+}
+
+
 /* HELPER FUNCTIONS */
 
 /** @brief returns whether a string can be converted to int */
-bool isdigit(string s) {
+bool isdigit(std::string s) {
   for (char& c : s) {
     if (!isdigit(c)) return false;
   }
@@ -35,19 +107,19 @@ bool isdigit(string s) {
 * @return 0 for success, -1 for failure
 */
 int getMoveCoords(int& r, int&c) {
-    string s;
+    std::string s;
     std::cout << "Input x: ";
-    getline(cin,s);
+    std::getline(std::cin,s);
     if (s.size() != 0 && isdigit(s)) {
-        c = stoi(s); 
+        c = std::stoi(s); 
         if (c < 0 || c >= NUM_COLS) return -1;
     } else {
         return -1;
     }
     std::cout << "Input y: ";
-    getline(cin,s); // take in y
+    std::getline(std::cin,s); // take in y
     if (s.size() != 0 && isdigit(s)) {
-        r = stoi(s);
+        r = std::stoi(s);
         if (r < 0 || r >= NUM_ROWS) return -1;
     } else {
         return -1;
@@ -200,7 +272,6 @@ void gameOver() {
 
 /** @brief play one full iteration of the game */
 void playOneIteration() {
-    // prompt for x, y and action
     int r;
     int c;
     int i = getMoveCoords(r,c);
@@ -213,9 +284,9 @@ void playOneIteration() {
  
     std::cout << "[F]lag, [R]eveal, or [U]nflag: ";
     
-    string action;
+    std::string action;
     do {
-        getline(cin, action);
+        std::getline(std::cin, action);
     } while (action != "f" && action != "F" && action != "r" && action != "R" && action != "u" && action != "U");
     
     // update boards
@@ -230,7 +301,6 @@ void playOneIteration() {
             reveal(r,c);
         } 
     } else if (action == "u" || action == "U") { // unflag
-        cout << gameBoard[r][c] << endl;
         if (gameBoard[r][c] == 'F'){
             gameBoard[r][c] = '#';
             numFlagsLeft++;
@@ -251,6 +321,28 @@ void playGame() {
     gameOver();
 }
 
+void testSerialize() {
+    setupBoard();
+    int i = serializeGameState();
+    std::cout << i << std::endl;
+}
+
 int main() {
-    playGame();
+    /*
+    main functs
+        1. generate state, start game (already have funct)
+        2. generate hash code of session
+        3. take action requests from other players connected to session 
+            (parsing packets for right session hash?)
+        4. start cooldown period btwn (actual) actions taken on the board
+            - this can be DoSed if your friend is mean ig
+            - if we do this, do we even need mutex?
+            - need to state sync broadcast
+        
+    optional
+        - if host disconnects, someone should connect back
+    */
+
+   testSerialize();
+    // playGame();
 }

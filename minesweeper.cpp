@@ -23,6 +23,38 @@ int numBombsFound = 0;
 
 /* HELPER FUNCTIONS */
 
+/** @brief returns whether a string can be converted to int */
+bool isdigit(string s) {
+  for (char& c : s) {
+    if (!isdigit(c)) return false;
+  }
+  return true;
+}
+
+/** @brief 
+* @return 0 for success, -1 for failure
+*/
+int getMoveCoords(int& r, int&c) {
+    string s;
+    std::cout << "Input x: ";
+    getline(cin,s);
+    if (s.size() != 0 && isdigit(s)) {
+        c = stoi(s); 
+        if (c < 0 || c >= NUM_COLS) return -1;
+    } else {
+        return -1;
+    }
+    std::cout << "Input y: ";
+    getline(cin,s); // take in y
+    if (s.size() != 0 && isdigit(s)) {
+        r = stoi(s);
+        if (r < 0 || r >= NUM_ROWS) return -1;
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
 /** @brief get number of bombs in 3x3 around (r,c) */
 int getNumBombs(int r, int c) {
     int count = 0;
@@ -130,13 +162,13 @@ void setupBoard() {
     }
     clearScreen();
     displayBoard();
-    int r = 0;
-    int c = 0;
-    // TODO: do correct checks for x,y
-    std::cout << "Input x: ";
-    std::cin >> c; // take in x
-    std::cout << "Input y: ";
-    std::cin >> r; // take in y
+    int r; 
+    int c;
+
+    int i = getMoveCoords(r,c);
+    while (i==-1) {
+        i = getMoveCoords(r,c);
+    }
 
     for (int i = 0; i < NUM_BOMBS; i++) {
         int temp_r = randInt(0,NUM_ROWS-1);
@@ -169,24 +201,23 @@ void gameOver() {
 /** @brief play one full iteration of the game */
 void playOneIteration() {
     // prompt for x, y and action
-    int r = 0;
-    int c = 0;
-
-    // TODO: do correct checks for x,y
-    std::cout << "Input x: ";
-    std::cin >> c; // take in x
-    std::cout << "Input y: ";
-    std::cin >> r; // take in y
-    
+    int r;
+    int c;
+    int i = getMoveCoords(r,c);
+    while (i == -1) {
+        i = getMoveCoords(r,c);
+    }
     // update screen board with blue highlight for selected coord
     clearScreen();
     displayBoard(r,c);
  
     std::cout << "[F]lag, [R]eveal, or [U]nflag: ";
+    
     string action;
-    cin.ignore(10000, '\n');
-    getline(cin, action);
-   
+    do {
+        getline(cin, action);
+    } while (action != "f" && action != "F" && action != "r" && action != "R" && action != "u" && action != "U");
+    
     // update boards
     if (action=="f" || action == "F") { // Flag
         if (gameBoard[r][c] == '#') {

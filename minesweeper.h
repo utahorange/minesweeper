@@ -1,63 +1,125 @@
+#ifndef MINESWEEPER_H
+#define MINESWEEPER_H
+
 /* INCLUDES */
 #include <iostream>
 #include <fstream> // for std::ofstream
 #include <string>
-#include <random>
-#include <chrono>
-#include <thread>
-#include <sstream> // for int to string safely
+#include <vector>
 
 #include "utilities.h"
 #include "json.hpp"
 using json = nlohmann::json;
 
-// using namespace std;
-
-/* CONSTANTS */
-#define NUM_ROWS 20
-#define NUM_COLS 20
+#define NUM_ROWS 5 
+#define NUM_COLS 5
 #define NUM_BOMBS (NUM_ROWS*NUM_COLS/5)
 
-/* GLOBALS */
+class Minesweeper {
+    public:
+        Minesweeper() {}
+        Minesweeper(int r, int c) {
+            // maybe do NUM_ROWS, NUM_COLS stuff here?
+        }
 
-char gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
-bool realBoard[NUM_ROWS][NUM_COLS]; // 2D bool array showing where the flags are
-// ^ these need to be dynamically allocated if 
-// i want session host to be able to change them
-// when making a session
+        // TODO: idk if these should be public/private, who's calling them?
+        void setupBoard();
+        void gameOver();
+        void playOneIteration();
 
-bool bombWentOff = false;
-int numFlagsLeft = NUM_BOMBS;
-int numBombsFound = 0;
+        bool didBombGoOff() {
+            return bombWentOff;
+        }
+        int getNumBombsFound() {
+            return numBombsFound;
+        }
+    private:
+        char gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
+        bool realBoard[NUM_ROWS][NUM_COLS]; // 2D bool array showing where the flags are
+        bool bombWentOff = false;
+        int numFlagsLeft = NUM_BOMBS;
+        int numBombsFound = 0;
 
-/* SERIALIZATION FUNCTIONS */
+        // helper functions
+        int getMoveCoords(int&r, int& c);
+        int getNumBombs(int r, int c);
+        bool inLocalThreeByThree(int r, int c, int r_test, int c_test);
+        void revealAllBombs();
 
-/*
-{
-    "numRows": 10,
-    "numCols": 10,
-    "gameBoard": [
-        ["#", "#", "#", " ", "F"],
-        [" ", "#", "#", " ", " "],
-        ["F", " ", "#", "#", "#"],
-        [" ", " ", " ", " ", " "],
-        ["#", "#", "F", "#", "#"]
-    ],
-    "realBoard": [
-        [false, true, false, false, false],
-        [false, false, false, false, false],
-        [true, false, false, true, false],
-        [false, false, false, false, false],
-        [false, true, true, false, false]
-    ],
-    "bombWentOff": 0,
-    "numFlagsLeft": ???,
-    "numBombsFound": 0
-}
+        int serializeGameState();
+        int unserializeGameState();
+        
+        // functions
+        void displayBoard(int current_r, int current_c);
+        void reveal(int r, int c);
+};
+
+/* HELPER FUNCTIONS */
+
+/** @brief 
+* @return 0 for success, -1 for failure
 */
+int Minesweeper::getMoveCoords(int& r, int&c) {
+    std::string s;
+    std::cout << "Input x: ";
+    std::getline(std::cin,s);
+    if (s.size() != 0 && isdigit(s)) {
+        c = std::stoi(s); 
+        if (c < 0 || c >= NUM_COLS) return -1;
+    } else {
+        return -1;
+    }
+    std::cout << "Input y: ";
+    std::getline(std::cin,s); // take in y
+    if (s.size() != 0 && isdigit(s)) {
+        r = std::stoi(s);
+        if (r < 0 || r >= NUM_ROWS) return -1;
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
+/** @brief get number of bombs in 3x3 around (r,c) */
+int Minesweeper::getNumBombs(int r, int c) {
+    int count = 0;
+    for (int i = -1; i <= 1; i++) {
+        if (r+i >= 0 && r+i < NUM_ROWS) {
+            for (int j = -1; j <= 1; j++) {
+                if (c+j >= 0 && c+j < NUM_COLS && !(i==0 && j==0) && realBoard[r+i][c+j]) {
+                    count += 1;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+/** @brief see if (r_test, c_test) is in 3x3 vicinity of (r,c) */
+bool Minesweeper::inLocalThreeByThree(int r, int c, int r_test, int c_test) {
+    for (int i = -1; i <=1; i++) {
+        for (int j = -1; j <=1; j++) {
+            if (r+i==r_test && c+j==c_test) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/** @brief reveal all the bombs, called by gameOver */
+void Minesweeper::revealAllBombs() {
+    for (int r = 0; r < NUM_ROWS; r++) {
+        for (int c = 0; c < NUM_COLS; c++) {
+            if (realBoard[r][c]) {
+                gameBoard[r][c] = '*'; 
+            }
+        }
+    }
+}
 
 /** @brief converts current gameBoard, realBoard to json file */
-int serializeGameState() {
+int Minesweeper::serializeGameState() {
     json gameState;
     gameState["numRows"] = NUM_ROWS;
     gameState["numCols"] = NUM_COLS;
@@ -85,12 +147,12 @@ int serializeGameState() {
 /** @brief loads json file into gameBoard, realBoard 
  * @return 0 for success, -1 if no gameState.json file to read
 */
-int unserializeGameState() {
+int Minesweeper::unserializeGameState() {
     std::ifstream inFile("assets/gameState.json");
     if (!inFile.good()) return -1;
     json loadedState = json::parse(inFile);
     /*
-    Note / TODO: 
+    TODO: 
     we kinda have a problem here
     we'll load the row, col params from the json file, 
     which could differ from our global contants
@@ -111,95 +173,23 @@ int unserializeGameState() {
     return 0;
 }
 
-/* HELPER FUNCTIONS */
-
-/** @brief returns whether a string can be converted to int */
-bool isdigit(std::string s) {
-    for (char& c : s) {
-        if (!isdigit(c)) return false;
-    }
-    return true;
-}
-
-/** @brief 
-* @return 0 for success, -1 for failure
-*/
-int getMoveCoords(int& r, int&c) {
-    std::string s;
-    std::cout << "Input x: ";
-    std::getline(std::cin,s);
-    if (s.size() != 0 && isdigit(s)) {
-        c = std::stoi(s); 
-        if (c < 0 || c >= NUM_COLS) return -1;
-    } else {
-        return -1;
-    }
-    std::cout << "Input y: ";
-    std::getline(std::cin,s); // take in y
-    if (s.size() != 0 && isdigit(s)) {
-        r = std::stoi(s);
-        if (r < 0 || r >= NUM_ROWS) return -1;
-    } else {
-        return -1;
-    }
-    return 0;
-}
-
-/** @brief get number of bombs in 3x3 around (r,c) */
-int getNumBombs(int r, int c) {
-    int count = 0;
-    for (int i = -1; i <= 1; i++) {
-        if (r+i >= 0 && r+i < NUM_ROWS) {
-            for (int j = -1; j <= 1; j++) {
-                if (c+j >= 0 && c+j < NUM_COLS && !(i==0 && j==0) && realBoard[r+i][c+j]) {
-                    count += 1;
-                }
-            }
-        }
-    }
-    return count;
-}
-
-/** @brief see if (r_test, c_test) is in 3x3 vicinity of (r,c) */
-bool inLocalThreeByThree(int r, int c, int r_test, int c_test) {
-    for (int i = -1; i <=1; i++) {
-        for (int j = -1; j <=1; j++) {
-            if (r+i==r_test && c+j==c_test) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-/** @brief reveal all the bombs, called by gameOver */
-void revealAllBombs() {
-    for (int r = 0; r < NUM_ROWS; r++) {
-        for (int c = 0; c < NUM_COLS; c++) {
-            if (realBoard[r][c]) {
-                gameBoard[r][c] = '*'; 
-            }
-        }
-    }
-}
-
 /* CORE FUNCTIONS */
 
 /** @brief displays board, number of flags used 
 * @note takes r,c which is coord of current move, highlighted blue
-* for colors, see https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
 **/
-void displayBoard(int current_r=-1, int current_c=-1) {
+void Minesweeper::displayBoard(int current_r=-1, int current_c=-1) {
     // number of flags can be negative
     std::stringstream oss;
     oss << numFlagsLeft;
     std::cout << "Flags: " << oss.str() << "\n\n  ";
     for (int c = 0; c < NUM_COLS; c++) {
-        std::cout << std::to_string(c) << " ";
+        std::cout << std::to_string(c).back() << " ";
     }
     std::cout << std::endl;
+
     for (int r = 0; r < NUM_ROWS; r++) {
-        std::cout << std::to_string(r) << " ";
+        std::cout << std::to_string(r).back() << " ";
         for (int c = 0; c < NUM_COLS; c++) {
             if (current_r == r && current_c == c) { // current square, color blue
                 std::cout << "\033[1;34m" << gameBoard[r][c] << "\033[0m ";
@@ -218,7 +208,7 @@ void displayBoard(int current_r=-1, int current_c=-1) {
 }
 
 /** @brief reveal recursively around square */
-void reveal(int r, int c) {
+void Minesweeper::reveal(int r, int c) {
     if (realBoard[r][c]) {
         gameBoard[r][c] = '*';
         bombWentOff = true;
@@ -241,8 +231,8 @@ void reveal(int r, int c) {
     }
 }
 
-/** @brief plays 1st step of game and generates board */
-void setupBoard() {
+/** @brief plays 1st step of game, generates board, saves board to gameState.json */
+void Minesweeper::setupBoard() {
     // set up realBoard and gameBoard
     for (int r = 0; r < NUM_ROWS; r++) {
         for (int c = 0; c < NUM_COLS; c++) {
@@ -274,10 +264,13 @@ void setupBoard() {
     reveal(r,c);
     clearScreen();
     displayBoard();
+
+    // should other players be able to see an empty board and maybe collab with player on which spot to pick for first move? - no for now
+    serializeGameState();
 }
 
 /** @brief game over */
-void gameOver() {
+void Minesweeper::gameOver() {
     clearScreen();
     revealAllBombs();
     displayBoard();
@@ -289,7 +282,7 @@ void gameOver() {
 }
 
 /** @brief play one full iteration of the game */
-void playOneIteration() {
+void Minesweeper::playOneIteration() {
     int r;
     int c;
     int i = getMoveCoords(r,c);
@@ -300,12 +293,12 @@ void playOneIteration() {
     clearScreen();
     displayBoard(r,c);
  
-    std::cout << "[F]lag, [R]eveal, or [U]nflag: ";
+    std::cout << "[F]lag, [R]eveal, [U]nflag, or [Q]uit turn: ";
     
     std::string action;
     do {
         std::getline(std::cin, action);
-    } while (action != "f" && action != "F" && action != "r" && action != "R" && action != "u" && action != "U");
+    } while (action != "f" && action != "F" && action != "r" && action != "R" && action != "u" && action != "U" && action != "Q" && action != "q");
     
     // update boards
     if (action=="f" || action == "F") { // Flag
@@ -323,51 +316,11 @@ void playOneIteration() {
             gameBoard[r][c] = '#';
             numFlagsLeft++;
         }
+    } else { // was Q or q
+        ;
     }
     clearScreen();
     displayBoard();
 }
 
-/** @brief play game */
-void playGame() {
-    std::cout << "Welcome to Minesweeper" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    setupBoard(); // board displayed with first move having been played
-    while (!bombWentOff && numBombsFound!=NUM_BOMBS){
-        playOneIteration();
-    }
-    gameOver();
-}
-
-// void testSerialize() {
-//     setupBoard();
-//     int i = serializeGameState();
-//     std::cout << i << std::endl;
-// }
-// void testUnserialize() {
-//     std::cout << "trying" << std::endl;
-//     int i = unserializeGameState();
-//     std::cout << i << std::endl;
-//     displayBoard();
-// }
-
-int main() {
-    /*
-    main functs
-        1. generate state, start game (already have funct)
-        2. generate hash code of session
-        3. take action requests from other players connected to session 
-            (parsing packets for right session hash?)
-        4. start cooldown period btwn (actual) actions taken on the board
-            - this can be DoSed if your friend is mean ig
-            - if we do this, do we even need mutex?
-            - need to state sync broadcast
-        
-    optional
-        - if host disconnects, someone should connect back
-    */
-
-    // testSerialize();
-    // testUnserialize() ;
-    playGame();
-}
+#endif

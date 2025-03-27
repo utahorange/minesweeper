@@ -52,3 +52,10 @@ void clearScreen()  // will just write a newline in an Xcode output window
 }
 
 #endif  // _WIN32
+
+bool isdigit(std::string s) {
+    for (char& c : s) {
+        if (!isdigit(c)) return false;
+    }
+    return true;
+}

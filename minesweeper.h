@@ -11,18 +11,14 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
-#define NUM_ROWS 5 
-#define NUM_COLS 5
-#define NUM_BOMBS (NUM_ROWS*NUM_COLS/5)
-
 class Minesweeper {
     public:
-        Minesweeper() {}
-        Minesweeper(int r, int c) {
-            // maybe do NUM_ROWS, NUM_COLS stuff here?
+        Minesweeper(int r=5, int c=5) : NUM_ROWS(r), NUM_COLS(c), NUM_BOMBS(r*c/5) {
+            numFlagsLeft = NUM_BOMBS;
+            gameBoard = std::vector<std::vector<char>>(NUM_ROWS,std::vector<char>(NUM_COLS,'#'));
+            realBoard = std::vector<std::vector<bool>>(NUM_ROWS,std::vector<bool>(NUM_COLS,false));
         }
-
-        // TODO: idk if these should be public/private, who's calling them?
+        
         void setupBoard();
         void gameOver();
         void playOneIteration();
@@ -33,12 +29,19 @@ class Minesweeper {
         int getNumBombsFound() {
             return numBombsFound;
         }
+        int getNumBombs() {
+            return NUM_BOMBS;
+        }
     private:
-        char gameBoard[NUM_ROWS][NUM_COLS]; // what you show user
-        bool realBoard[NUM_ROWS][NUM_COLS]; // 2D bool array showing where the flags are
+        // state
+        std::vector<std::vector<char>> gameBoard; // what you show user
+        std::vector<std::vector<bool>> realBoard; // 2D bool array showing where the flags are
         bool bombWentOff = false;
-        int numFlagsLeft = NUM_BOMBS;
+        int numFlagsLeft;
         int numBombsFound = 0;
+        const int NUM_ROWS;
+        const int NUM_COLS;
+        const int NUM_BOMBS;
 
         // helper functions
         int getMoveCoords(int&r, int& c);
@@ -151,16 +154,7 @@ int Minesweeper::unserializeGameState() {
     std::ifstream inFile("assets/gameState.json");
     if (!inFile.good()) return -1;
     json loadedState = json::parse(inFile);
-    /*
-    TODO: 
-    we kinda have a problem here
-    we'll load the row, col params from the json file, 
-    which could differ from our global contants
-    in fact, a client program shouldn't even define 
-    those params until it boots up and receives a game code
 
-    cooked? imma just ignore this for now
-    */
     for (int r = 0; r < NUM_ROWS; r++) {
         for (int c = 0; c < NUM_COLS; c++) {
             gameBoard[r][c] = loadedState["gameBoard"][r][c].get<char>();
@@ -182,7 +176,7 @@ void Minesweeper::displayBoard(int current_r=-1, int current_c=-1) {
     // number of flags can be negative
     std::stringstream oss;
     oss << numFlagsLeft;
-    std::cout << "Flags: " << oss.str() << "\n\n  ";
+    std::cout << "Flags Left: " << oss.str() << "\n\n  ";
     for (int c = 0; c < NUM_COLS; c++) {
         std::cout << std::to_string(c).back() << " ";
     }
@@ -234,12 +228,7 @@ void Minesweeper::reveal(int r, int c) {
 /** @brief plays 1st step of game, generates board, saves board to gameState.json */
 void Minesweeper::setupBoard() {
     // set up realBoard and gameBoard
-    for (int r = 0; r < NUM_ROWS; r++) {
-        for (int c = 0; c < NUM_COLS; c++) {
-            gameBoard[r][c] = '#';
-            realBoard[r][c] = false;
-        }
-    }
+    
     clearScreen();
     displayBoard();
     int r; 

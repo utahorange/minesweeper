@@ -1,61 +1,4 @@
-#ifndef MINESWEEPER_H
-#define MINESWEEPER_H
-
-/* INCLUDES */
-#include <iostream>
-#include <fstream> // for std::ofstream
-#include <string>
-#include <vector>
-
-#include "utilities.h"
-#include "json.hpp"
-using json = nlohmann::json;
-
-class Minesweeper {
-    public:
-        Minesweeper(int r=5, int c=5) : NUM_ROWS(r), NUM_COLS(c), NUM_BOMBS(r*c/5) {
-            numFlagsLeft = NUM_BOMBS;
-            gameBoard = std::vector<std::vector<char>>(NUM_ROWS,std::vector<char>(NUM_COLS,'#'));
-            realBoard = std::vector<std::vector<bool>>(NUM_ROWS,std::vector<bool>(NUM_COLS,false));
-        }
-        
-        void setupBoard();
-        void gameOver();
-        void playOneIteration();
-
-        bool didBombGoOff() {
-            return bombWentOff;
-        }
-        int getNumBombsFound() {
-            return numBombsFound;
-        }
-        int getNumBombs() {
-            return NUM_BOMBS;
-        }
-    private:
-        // state
-        std::vector<std::vector<char>> gameBoard; // what you show user
-        std::vector<std::vector<bool>> realBoard; // 2D bool array showing where the flags are
-        bool bombWentOff = false;
-        int numFlagsLeft;
-        int numBombsFound = 0;
-        const int NUM_ROWS;
-        const int NUM_COLS;
-        const int NUM_BOMBS;
-
-        // helper functions
-        int getMoveCoords(int&r, int& c);
-        int getNumBombs(int r, int c);
-        bool inLocalThreeByThree(int r, int c, int r_test, int c_test);
-        void revealAllBombs();
-
-        int serializeGameState();
-        int unserializeGameState();
-        
-        // functions
-        void displayBoard(int current_r, int current_c);
-        void reveal(int r, int c);
-};
+#include "minesweeper.h"
 
 /* HELPER FUNCTIONS */
 
@@ -126,7 +69,8 @@ int Minesweeper::serializeGameState() {
     json gameState;
     gameState["numRows"] = NUM_ROWS;
     gameState["numCols"] = NUM_COLS;
-
+    gameState["numBombs"] = NUM_BOMBS;
+    
     gameState["gameBoard"] = json::array();
     for (int i = 0; i < NUM_ROWS; ++i) {
         json row = json::array();
@@ -164,6 +108,7 @@ int Minesweeper::unserializeGameState() {
     bombWentOff = (loadedState["bombWentOff"]==1) ? true : false;
     numFlagsLeft = loadedState["numFlagsLeft"];
     numBombsFound = loadedState["numBombsFound"];
+
     return 0;
 }
 
@@ -312,4 +257,33 @@ void Minesweeper::playOneIteration() {
     displayBoard();
 }
 
-#endif
+/** @brief networked version of playOneIteration */
+void Minesweeper::attemptMove() {
+    int r;
+    int c;
+    int i = getMoveCoords(r,c);
+    while (i == -1) {
+        i = getMoveCoords(r,c);
+    }
+    // update screen board with blue highlight for selected coord
+    clearScreen();
+    displayBoard(r,c);
+ 
+    std::cout << "[F]lag, [R]eveal, [U]nflag, or [Q]uit turn: ";
+    
+    std::string action;
+    do {
+        std::getline(std::cin, action);
+    } while (action != "f" && action != "F" && action != "r" && action != "R" && action != "u" && action != "U" && action != "Q" && action != "q");
+    
+    if ((action=="f" || action == "F") && gameBoard[r][c] == '#') { // Flag
+        // send to server
+
+    } else if ((action == "r" || action == "R") && gameBoard[r][c] == '#') { // Reveal
+        // send to server
+    } else if ((action == "u" || action == "U") && gameBoard[r][c] == 'F') { // unflag
+    } else { // was Q or q
+        ;
+    }
+    // only update board if affirmative response from server? (another gamestate.json file)
+}

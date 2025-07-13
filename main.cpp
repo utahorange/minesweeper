@@ -4,7 +4,7 @@
 #include "minesweeper.h"
 #include "utilities.h"
 
-void gameThread() { // the thread for running a game, should start serverThread 
+Minesweeper* setupGame() { // the thread for running a game, should start serverThread 
     int numRows = -1;
     int numCols = -1;
 
@@ -19,22 +19,20 @@ void gameThread() { // the thread for running a game, should start serverThread
     while (s.size() != 0 && isdigit(s) && (numRows < 0 || numRows > INT32_MAX)) {
         numRows = std::stoi(s); 
     }
-    Minesweeper game = Minesweeper(numRows,numCols);
+    Minesweeper* game = new Minesweeper(numRows,numCols);
 
-    game.setupBoard(); // board displayed with first move having been played
-    
-    while (!game.didBombGoOff() && game.getNumBombsFound()!=game.getNumBombs()){
-        game.playOneIteration();
+    game->setupBoard(); // board displayed with first move having been played
+    return game;
+}
+
+/** @brief code for anyone including server to play the game */
+void clientThread(Minesweeper* game) {
+    while (!game->didBombGoOff() && game->getNumBombsFound()!=game->getNumBombs()){
+        game->attemptMove();
     }
-    game.gameOver();
-}
-
-void serverThread() {
-
-}
-
-void clientThread() {
-    // code for any client (other player) to play the game
+    game->gameOver();
+    delete game;
+    // should minesweeper.h be devoid of networking code? is this even possible?
 
     // some func to communicate w server on udp datagrams
     // sending json 
@@ -47,17 +45,9 @@ void clientThread() {
 
     // wait for user input
     // continually, playOneIteration but like to send over network if not server
-
 }
 
 int main() {
-    // concurrency stuff, shuffling btwn server thread and game thread
-    // all game stuff abstracted into Minesweeper class
-    
-    // prompt user to either [S]tart or [J]oin a game
-    // run serverThread or clientThread
-    // if client, no need to run gameThread/multi-thread
-    
     clearScreen(); 
     std::cout << "Welcome to Minesweeper" << std::endl;
     // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -69,10 +59,32 @@ int main() {
     } while (action != "S" && action != "s" && action != "J" && action != "j");
     
     if (action == "S" || action == "s") { // is server
-        gameThread();
-        // std::thread server(serverThread);
+        Minesweeper* game = setupGame();
 
     } else { // client
-        // client - prob doesn't need to be threaded
+        // request 
     }
 }
+
+/*
+okay so this is an interesting problem
+clients that are not server obv need to play
+but must they create their own instance of the minesweeper class?
+or i need to refactor clientThread in such a way that it doesn't require creating a minesweeper game
+and instead just sends messages to the serverThread, which processes them?
+
+hmmm problem is, client needs to know what to show to user, ie how to play a move
+is this a static function?
+
+
+so what does the client need?
+
+it needs to:
+1. send a msg to server to request board
+2. process (or have access to smth to process) the board
+3. continually request person for moves to send to server
+4. end thread when game is finished
+- this is detected by receiving a gameState.json where numBombsFound = numBombs or bombWentOff = 1
+
+let's just have them make a minesweeper game lowkey
+*/

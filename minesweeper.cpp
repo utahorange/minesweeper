@@ -1,4 +1,4 @@
-#include "minesweeper.h"
+#include "minesweeper.hpp"
 
 /* HELPER FUNCTIONS */
 

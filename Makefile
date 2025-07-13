@@ -1,22 +1,24 @@
-CC = clang++ $(CFLAGS) $(STD)
-CFLAGS = -std=c++20
+CC = clang++
+CXXFLAGS = -std=c++20 -Wall -Wextra -pedantic -pthread
 
 # INCLUDES = -I/usr/X11/include/GL
 # LIBS = -L/usr/X11/lib -lglut -lGL -lGLU
 
+# All objects including networking
 OBJECTS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
-HEADERS = $(wildcard *.h)
+HEADERS = $(wildcard *.hpp)
 
 %.o: %.cpp $(HEADERS)
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CXXFLAGS) $< -o $@
 
 PRODUCT = Minesweeper
 
 $(PRODUCT): $(OBJECTS) 
-	$(CC) $(CFLAGS) $(OBJECTS) -o $@
+	$(CC) $(CXXFLAGS) $(OBJECTS) -o $@
 
 .PHONY: clean all
 all: $(PRODUCT)
+	rm -f *.o
 
 clean:
 	rm -f *.o

@@ -1,5 +1,5 @@
-#ifndef MINESWEEPER_H
-#define MINESWEEPER_H
+#ifndef MINESWEEPER_HPP
+#define MINESWEEPER_HPP
 
 /* INCLUDES */
 #include <iostream>
@@ -8,7 +8,7 @@
 #include <vector>
 #include <sstream>
 
-#include "utilities.h"
+#include "utilities.hpp"
 #include "json.hpp"
 using json = nlohmann::json;
 
@@ -68,23 +68,3 @@ class Minesweeper {
 };
 
 #endif
-
-/*
-Gameplay Progression
-
-1a. Any user starts a game by calling setupGame by typing [S]
-- will eventually need to generate a hash that is the game code (probably like 4 random digits)
-- needs to be able to respond to client requests for game (server thread open)
-
-1b. Any user joins a game (it may or may not exist) by typing [J]
-- 
-
-2.  
-
-networking reqs:
-- need server instance to both run the game for that player, and respond to clients that broadcast asking for gamestate via game code
-- clients join the game (by server setting up connection to client, and sending game state to client)
-- server needs to persistently store connections to everyone
-
-
-*/

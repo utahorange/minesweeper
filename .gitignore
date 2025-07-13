@@ -1,6 +1,10 @@
-*.json
 __pycache__
 .vscode
+.DS_Store
+
 *.py
-Minesweeper
 temp_py
+*.json
+
+*.o
+Minesweeper

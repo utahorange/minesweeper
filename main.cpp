@@ -8,10 +8,14 @@
 #include <pthread.h>
 #include <iostream>
 #include <sstream>
+#include <regex>
 
 #include "minesweeper.hpp"
 #include "utilities.hpp"
 #include "network.hpp"
+
+
+/* NETWORKING FUNCTIONS */
 
 #define PORT 9999
 #define BUFFER_SIZE 1024
@@ -92,7 +96,7 @@ void run_server() {
         }
         
         char buffer[BUFFER_SIZE];
-        int bytes_received = receive_json(client_socket, buffer, BUFFER_SIZE);
+        int bytes_received = receive_bytes(client_socket, buffer, BUFFER_SIZE);
         
         if (bytes_received > 0) {
             std::cout << "Received JSON from client: " << buffer << std::endl;
@@ -102,7 +106,7 @@ void run_server() {
             response_oss << "{\"status\": \"success\", \"message\": \"Server received your data\", \"received\": " << buffer << "}";
             std::string response = response_oss.str();
             
-            int bytes_sent = send_json(client_socket, response.c_str());
+            int bytes_sent = send_bytes(client_socket, response.c_str());
             if (bytes_sent > 0) {
                 std::cout << "Sent response to client" << std::endl;
                 usleep(100000); // Add a short delay to ensure data is sent
@@ -140,13 +144,13 @@ void run_client(const std::string& server_ip) {
     
     std::cout << "Sending JSON to server: " << json_message << std::endl;
     
-    int bytes_sent = send_json_to_server(client_socket, json_message.c_str());
+    int bytes_sent = send_bytes(client_socket, json_message.c_str());
     if (bytes_sent > 0) {
         std::cout << "Successfully sent " << bytes_sent << " bytes to server" << std::endl;
         
         // Receive response from server
         char buffer[BUFFER_SIZE];
-        int bytes_received = receive_json_from_server(client_socket, buffer, BUFFER_SIZE);
+        int bytes_received = receive_bytes(client_socket, buffer, BUFFER_SIZE);
         
         if (bytes_received > 0) {
             std::cout << "Received response from server: " << buffer << std::endl;
@@ -178,7 +182,6 @@ void run_client_auto() {
     std::string local_ip = get_local_ip_address();
     if (local_ip.empty()) {
         std::cout << "Error: Could not determine local IP address" << std::endl;
-        std::cout << "Please specify server IP manually: " << "networking" << " client <server_ip>" << std::endl;
         return;
     }
     
@@ -199,13 +202,13 @@ void run_client_auto() {
     
     std::cout << "Sending JSON to server: " << json_message << std::endl;
     
-    int bytes_sent = send_json_to_server(client_socket, json_message.c_str());
+    int bytes_sent = send_bytes(client_socket, json_message.c_str());
     if (bytes_sent > 0) {
         std::cout << "Successfully sent " << bytes_sent << " bytes to server" << std::endl;
         
         // Receive response from server
         char buffer[BUFFER_SIZE];
-        int bytes_received = receive_json_from_server(client_socket, buffer, BUFFER_SIZE);
+        int bytes_received = receive_bytes(client_socket, buffer, BUFFER_SIZE);
         
         if (bytes_received > 0) {
             std::cout << "Received response from server: " << buffer << std::endl;
@@ -218,6 +221,9 @@ void run_client_auto() {
     
     close_socket(client_socket);
 }
+
+
+/* MINESWEEPER FUNCTIONS */
 
 Minesweeper* setupGame() { // the thread for running a game, should start serverThread 
     int numRows = -1;
@@ -241,15 +247,14 @@ Minesweeper* setupGame() { // the thread for running a game, should start server
 }
 
 /** @brief code for anyone including server to play the game */
-void clientThread(Minesweeper* game) {
+void playGame(Minesweeper* game) {
     while (!game->didBombGoOff() && game->getNumBombsFound()!=game->getNumBombs()){
         game->attemptMove();
     }
     game->gameOver();
-    delete game;
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
     clearScreen(); 
     std::cout << "Welcome to Minesweeper" << std::endl;
     // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -261,32 +266,28 @@ int main(int argc, char *argv[]) {
     } while (action != "S" && action != "s" && action != "J" && action != "j");
     
     if (action == "S" || action == "s") { // is server
+        std::thread server_thread(run_server);
         Minesweeper* game = setupGame();
-        run_server();
+        std::thread client_thread(playGame, game);
         delete game;
-
     } else { // client
-        run_client_discover(); // attempt to discover servers and join random games?
-        // request 
+        std::string server_ip;
+        const std::regex regex_ip(
+            "^(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
+            "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
+            "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
+            "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$",
+            std::regex::ECMAScript);        
+        std::cout << "Server IP in the form of 192.168.1.1: ";
+        do {
+            std::getline(std::cin, server_ip);
+        } while (! std::regex_match(server_ip, regex_ip));
+
+        run_client(server_ip);
+        // receive server game json
+        // make json into game object
+        // playGame()
     }
-   
-   
-   
-       // } else if (std::strcmp(argv[1], "client") == 0) {
-    //     if (argc == 2) {
-    //         // Auto-detect mode
-    //         run_client_auto();
-    //     } else if (argc == 3) {
-    //         // Manual IP specification
-    //         run_client(argv[2]);
-    //     } else {
-    //         std::cout << "Error: Invalid number of arguments for client mode" << std::endl;
-    //         std::cout << "Usage: " << argv[0] << " client [server_ip]" << std::endl;
-    //         return 1;
-    //     }
-    // } else if (std::strcmp(argv[1], "discover") == 0) {
-    //     run_client_discover();
-    
     return 0;
 } 
 

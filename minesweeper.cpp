@@ -65,7 +65,7 @@ void Minesweeper::revealAllBombs() {
 }
 
 /** @brief converts current gameBoard, realBoard to json file */
-int Minesweeper::serializeGameState() {
+int Minesweeper::serializeStateToJSON() {
     json gameState;
     gameState["numRows"] = NUM_ROWS;
     gameState["numCols"] = NUM_COLS;
@@ -94,7 +94,7 @@ int Minesweeper::serializeGameState() {
 /** @brief loads json file into gameBoard, realBoard 
  * @return 0 for success, -1 if no gameState.json file to read
 */
-int Minesweeper::unserializeGameState() {
+int Minesweeper::unserializeStateFromJSON() {
     std::ifstream inFile("assets/gameState.json");
     if (!inFile.good()) return -1;
     json loadedState = json::parse(inFile);
@@ -199,8 +199,7 @@ void Minesweeper::setupBoard() {
     clearScreen();
     displayBoard();
 
-    // should other players be able to see an empty board and maybe collab with player on which spot to pick for first move? - no for now
-    serializeGameState();
+    serializeStateToJSON();
 }
 
 /** @brief game over */
@@ -257,7 +256,9 @@ void Minesweeper::playOneIteration() {
     displayBoard();
 }
 
-/** @brief networked version of playOneIteration */
+/** @brief client-side playOneIteration 
+ * @note potentially fails if server rejects attempted state change, in which case, nothing happens
+*/
 void Minesweeper::attemptMove() {
     int r;
     int c;

@@ -1,4 +1,4 @@
-CC = clang++
+CC = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -pedantic -pthread
 
 # INCLUDES = -I/usr/X11/include/GL

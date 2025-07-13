@@ -43,7 +43,7 @@ int create_server(int port) {
         return -1;
     }
 
-    std::cout << "Server listening on port " << port << std::endl;
+    std::cout << "Server started and listening on port " << port << std::endl;
     return server_socket;
 }
 
@@ -65,25 +65,26 @@ int accept_client(int server_socket) {
     return client_socket;
 }
 
-// Receive JSON data from a client
-int receive_json(int client_socket, char *buffer, int buffer_size) {
-    // First receive the length of the JSON data (4 bytes)
-    std::uint32_t json_length;
-    int bytes_received = recv(client_socket, &json_length, sizeof(json_length), 0);
+/** @brief store bytes data
+* @return 0 for success, -1 for failure
+*/
+int receive_bytes(int client_socket, char *buffer, int buffer_size) {
+    std::uint32_t data_len;
+    int bytes_received = recv(client_socket, &data_len, sizeof(data_len), 0);
     if (bytes_received <= 0) {
         return -1;
     }
     
     // Convert from network byte order to host byte order
-    json_length = ntohl(json_length);
+    data_len = ntohl(data_len);
     
-    if (json_length > static_cast<std::uint32_t>(buffer_size - 1)) {
-        std::cout << "Warning: JSON data too large for buffer (" << json_length << " bytes)" << std::endl;
+    if (data_len > static_cast<std::uint32_t>(buffer_size - 1)) {
+        std::cout << "Warning: JSON data too large for buffer (" << data_len << " bytes)" << std::endl;
         return -1;
     }
     
     // Receive the actual JSON data
-    bytes_received = recv(client_socket, buffer, json_length, 0);
+    bytes_received = recv(client_socket, buffer, data_len, 0);
     if (bytes_received <= 0) {
         return -1;
     }
@@ -95,9 +96,9 @@ int receive_json(int client_socket, char *buffer, int buffer_size) {
 }
 
 // Send JSON data to a client
-int send_json(int client_socket, const char *json_data) {
-    std::uint32_t json_length = std::strlen(json_data);
-    std::uint32_t network_length = htonl(json_length);
+int send_bytes(int client_socket, const char *json_data) {
+    std::uint32_t data_len = std::strlen(json_data);
+    std::uint32_t network_length = htonl(data_len);
     
     // Send the length first
     int bytes_sent = send(client_socket, &network_length, sizeof(network_length), 0);
@@ -105,8 +106,8 @@ int send_json(int client_socket, const char *json_data) {
         return -1;
     }
     
-    // Send the JSON data
-    bytes_sent = send(client_socket, json_data, json_length, 0);
+    // Send the data
+    bytes_sent = send(client_socket, json_data, data_len, 0);
     if (bytes_sent <= 0) {
         return -1;
     }
@@ -141,16 +142,6 @@ int connect_to_server(const char *server_ip, int port) {
 
     std::cout << "Connected to server " << server_ip << ":" << port << std::endl;
     return client_socket;
-}
-
-// Send JSON data to server (alias for send_json)
-int send_json_to_server(int socket, const char *json_data) {
-    return send_json(socket, json_data);
-}
-
-// Receive JSON data from server (alias for receive_json)
-int receive_json_from_server(int socket, char *buffer, int buffer_size) {
-    return receive_json(socket, buffer, buffer_size);
 }
 
 // Close a socket

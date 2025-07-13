@@ -15,13 +15,12 @@
 // Server functions
 int create_server(int port);
 int accept_client(int server_socket);
-int receive_json(int client_socket, char *buffer, int buffer_size);
-int send_json(int client_socket, const char *json_data);
+
+int receive_bytes(int client_socket, char *buffer, int buffer_size);
+int send_bytes(int client_socket, const char *json_data);
 
 // Client functions
 int connect_to_server(const char *server_ip, int port);
-int send_json_to_server(int socket, const char *json_data);
-int receive_json_from_server(int socket, char *buffer, int buffer_size);
 
 // Utility functions
 void close_socket(int socket);

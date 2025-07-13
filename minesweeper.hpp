@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include "utilities.hpp"
+#include "network.hpp"
 #include "json.hpp"
 using json = nlohmann::json;
 
@@ -19,9 +20,9 @@ class Minesweeper {
             gameBoard = std::vector<std::vector<char>>(NUM_ROWS,std::vector<char>(NUM_COLS,'#'));
             realBoard = std::vector<std::vector<bool>>(NUM_ROWS,std::vector<bool>(NUM_COLS,false));
         }
-        /** @brief used when client gets first gameState.json from server */
+        /** @brief used when client gets first game state from server */
         Minesweeper() {
-            int result = unserializeGameState(); 
+            int result = unserializeStateFromJSON(); // TODO: this is actually unserialize from bytes, not jSON
             if (result == -1) {
                 std::cout << "Problem encountered when loading board" << std::endl;
             }
@@ -59,8 +60,8 @@ class Minesweeper {
         bool inLocalThreeByThree(int r, int c, int r_test, int c_test);
         void revealAllBombs();
 
-        int serializeGameState();
-        int unserializeGameState(); // updateBoard for client-side
+        int serializeStateToJSON();
+        int unserializeStateFromJSON(); // updateBoard for client-side
         
         // functions
         void displayBoard(int current_r, int current_c);

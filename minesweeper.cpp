@@ -215,7 +215,7 @@ void Minesweeper::gameOver() {
 }
 
 /** @brief play one full iteration of the game */
-void Minesweeper::playOneIteration() {
+void Minesweeper::serverMove() {
     int r;
     int c;
     int i = getMoveCoords(r,c);
@@ -259,7 +259,7 @@ void Minesweeper::playOneIteration() {
 /** @brief client-side playOneIteration 
  * @note potentially fails if server rejects attempted state change, in which case, nothing happens
 */
-void Minesweeper::attemptMove() {
+void Minesweeper::clientMove() {
     int r;
     int c;
     int i = getMoveCoords(r,c);

@@ -30,9 +30,9 @@ class Minesweeper {
         ~Minesweeper() {} 
         void setupBoard();
         void gameOver();
-        void playOneIteration();
+        void serverMove();
 
-        void attemptMove();
+        void clientMove();
 
         bool didBombGoOff() {
             return bombWentOff;

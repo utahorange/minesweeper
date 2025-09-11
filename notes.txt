@@ -1,0 +1,28 @@
+
+
+
+opcodes
+
+01
+02
+03
+04
+05
+
+there is some form of contention going on for clientMove and serverMove
+
+i think actual game board array is stored on server side 
+- does serverMove need contention?
+- not rlly i think, just move
+
+however clientMove is more tricky
+
+clientMove
+1. send move request to server
+2. server ack or not ack (plus board state)
+3. if ack
+    - client + server both make that move (how does server make that move?)
+    else not ack
+    - client's move is not played 
+    - client board updated 
+

@@ -14,8 +14,4 @@ To install the game and start it, just clone this repository and run `make all; 
 
 This project uses a client-server architecture :( because I could not figure out P2P networking. It also only works within a LAN because I bad at NAT traversal. 
 
-
-
-
 I implemented terminal colors with [ANSI color codes](https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal) which only works on some terminals.
-
